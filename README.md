@@ -305,6 +305,7 @@ constructor(api: IApi)
 
 В файле `types/index.ts` добавлены следующие типы:
 
+```typescript
  Тип для ответа сервера с товарами
 export interface IProductsResponse {
   items: IProduct[];
