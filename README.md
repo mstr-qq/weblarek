@@ -98,7 +98,7 @@ Presenter - презентер содержит основную логику п
 `emit<T extends object>(event: string, data?: T): void` - инициализация события. При вызове события в метод передается название события и объект с данными, который будет использован как аргумент для вызова обработчика.  
 `trigger<T extends object>(event: string, context?: Partial<T>): (data: T) => void` - возвращает функцию, при вызове которой инициализируется требуемое в параметрах событие с передачей в него данных из второго параметра.
 
-
+---
 
 ## Данные
 
@@ -110,7 +110,7 @@ Presenter - презентер содержит основную логику п
 /**
  * Тип для способа оплаты
  */
-type TPayment = 'cash' | 'online';
+type TPayment = 'cash' | 'online' | '';
 
 /**
  * Интерфейс товара
@@ -137,15 +137,9 @@ interface IBuyer {
 }
 
 /**
- * Интерфейс для ошибок валидации покупателя
- * Используется для возврата информации о валидности полей
+ * Тип для ошибок валидации покупателя
  */
-interface IBuyerValidationErrors {
-  payment?: string; // Ошибка для поля payment
-  email?: string;   // Ошибка для поля email
-  phone?: string;   // Ошибка для поля phone
-  address?: string; // Ошибка для поля address
-}
+type IBuyerValidationErrors = Partial<Record<keyof IBuyer, string>>;
 ```
 
 ---
@@ -247,20 +241,20 @@ constructor(initialData: Partial<IBuyer> = {})
 - `initialData: Partial<IBuyer> = {}` - начальные данные покупателя (по умолчанию пустой объект)
 
 **Поля класса:**
-- `_data: Partial<IBuyer>` - приватное поле, хранящее данные покупателя
+- `_data: IBuyer` - приватное поле, хранящее данные покупателя
 
 **Методы класса:**
 
 1. `saveData(data: Partial<IBuyer>): void`
-   - Сохраняет данные покупателя в модель
-   - Параметры: `data: Partial<IBuyer>` - данные для сохранения (могут быть частичными)
+   - Сохраняет данные покупателя в модель (могут быть частичными)
+   - Параметры: `data: Partial<IBuyer>` - данные для сохранения
 
-2. `getData(): Partial<IBuyer>`
+2. `getData(): IBuyer`
    - Возвращает все сохраненные данные покупателя
-   - Возвращаемое значение: `Partial<IBuyer>` - данные покупателя
+   - Возвращаемое значение: `IBuyer` - полные данные покупателя
 
 3. `clear(): void`
-   - Очищает все данные покупателя
+   - Очищает все данные покупателя, устанавливая пустые значения
 
 4. `validate(): IBuyerValidationErrors`
    - Проверяет валидность всех полей покупателя
@@ -268,12 +262,7 @@ constructor(initialData: Partial<IBuyer> = {})
    - Возвращаемое значение: `IBuyerValidationErrors` - объект с ошибками валидации
    - Пример возвращаемого значения: `{payment: 'Не выбран вид оплаты', email: 'Укажите емэйл'}`
 
-5. `validateField(field: keyof IBuyer, value: string): string | null`
-   - Проверяет валидность конкретного поля покупателя
-   - Параметры: `field: keyof IBuyer` - имя проверяемого поля, `value: string` - значение для проверки
-   - Возвращаемое значение: `string | null` - текст ошибки или null если поле валидно
-   
-   ---
+---
 
 ## Слой коммуникации
 
@@ -296,18 +285,41 @@ constructor(api: IApi)
    - Выполняет GET запрос на эндпоинт `/product/` для получения каталога товаров
    - Возвращаемое значение: `Promise<IProduct[]>` - промис с массивом товаров
 
-2. `createOrder(orderData: object): Promise<object>`
+2. `createOrder(orderData: IOrderData): Promise<IOrderResponse>`
    - Выполняет POST запрос на эндпоинт `/order/` для создания заказа
-   - Параметры: `orderData: object` - данные заказа в формате, соответствующем API сервера
-   - Возвращаемое значение: `Promise<object>` - промис с ответом сервера
+   - Параметры: `orderData: IOrderData` - данные заказа, включающие способ оплаты, контактные данные, сумму и список идентификаторов товаров
+   - Возвращаемое значение: `Promise<IOrderResponse>` - промис с ответом сервера, содержащим идентификатор заказа и общую сумму
 
 ### Типы данных для API
 
 В файле `types/index.ts` добавлены следующие типы:
 
 ```typescript
- Тип для ответа сервера с товарами
+/**
+ * Тип для ответа сервера с товарами
+ */
 export interface IProductsResponse {
   items: IProduct[];
+  total: number;
+}
+
+/**
+ * Данные для создания заказа
+ */
+export interface IOrderData {
+  payment: TPayment;    // Способ оплаты
+  email: string;        // Электронная почта
+  phone: string;        // Телефон
+  address: string;      // Адрес доставки
+  total: number;        // Общая сумма заказа
+  items: string[];      // Массив идентификаторов товаров
+}
+
+/**
+ * Ответ сервера на создание заказа
+ */
+export interface IOrderResponse {
+  id: string;           // Идентификатор заказа
+  total: number;        // Общая сумма заказа
 }
 ```

@@ -87,31 +87,16 @@ function testModels() {
     console.log('Результат валидации:', validationResult);
     console.log('Валидны все поля?', Object.keys(validationResult).length === 0);
     
-    console.log('Валидация поля email:', buyerModel.validateField('email', 'test@example.com'));
-    console.log('Валидация пустого email:', buyerModel.validateField('email', ''));
-    console.log('Валидация поля phone:', buyerModel.validateField('phone', '+79991234567'));
-    console.log('Валидация пустого phone:', buyerModel.validateField('phone', ''));
-    
     buyerModel.clear();
     console.log('Данные после очистки:', buyerModel.getData());
     
     console.log('\n=== Тестирование завершено ===');
 }
 
-console.log('Проверка настроек API:');
-console.log('VITE_API_ORIGIN:', import.meta.env.VITE_API_ORIGIN);
-console.log('API_URL из constants.ts:', API_URL);
-
-if (!import.meta.env.VITE_API_ORIGIN) {
-    console.error('ОШИБКА: Переменная VITE_API_ORIGIN не установлена!');
-    console.error('Создайте файл .env в корне проекта с содержимым:');
-    console.error('VITE_API_ORIGIN=https://larek-api.nomoreparties.co');
-}
+console.log('API_URL:', API_URL);
 
 const api = new Api(API_URL);
-
 const shopApi = new ShopApi(api);
-
 const serverProductModel = new ProductModel();
 
 shopApi.getProducts()
@@ -139,7 +124,6 @@ shopApi.getProducts()
     .catch(error => {
         console.error('\n=== Ошибка при получении данных с сервера ===');
         console.error('Ошибка:', error);
-        console.log('Полный URL запроса был:', API_URL + '/product/');
         console.log('Используем тестовые данные...');
         
         serverProductModel.saveProducts(apiProducts.items);

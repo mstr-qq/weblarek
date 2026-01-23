@@ -1,22 +1,32 @@
 import { IBuyer, IBuyerValidationErrors } from '../../types';
 
 export class BuyerModel {
-    private _data: Partial<IBuyer> = {};
+    private _data: IBuyer = {
+        payment: 'online',
+        email: '',
+        phone: '',
+        address: ''
+    };
 
     constructor(initialData: Partial<IBuyer> = {}) {
-        this._data = initialData;
+        this._data = { ...this._data, ...initialData };
     }
 
     saveData(data: Partial<IBuyer>): void {
         this._data = { ...this._data, ...data };
     }
 
-    getData(): Partial<IBuyer> {
+    getData(): IBuyer {
         return this._data;
     }
 
     clear(): void {
-        this._data = {};
+        this._data = {
+            payment: 'online',
+            email: '',
+            phone: '',
+            address: ''
+        };
     }
 
     validate(): IBuyerValidationErrors {
@@ -39,18 +49,5 @@ export class BuyerModel {
         }
         
         return errors;
-    }
-
-    validateField(field: keyof IBuyer, value: string): string | null {
-        if (!value) {
-            switch(field) {
-                case 'payment': return 'Не выбран вид оплаты';
-                case 'email': return 'Укажите емэйл';
-                case 'phone': return 'Укажите телефон';
-                case 'address': return 'Укажите адрес';
-                default: return 'Поле не может быть пустым';
-            }
-        }
-        return null;
     }
 }
