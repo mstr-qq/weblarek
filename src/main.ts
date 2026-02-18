@@ -1,133 +1,200 @@
 import './scss/styles.scss';
-import { Api } from './components/base/Api';
-import { ShopApi } from './components/api/ShopApi';
-import { ProductModel } from './components/models/ProductModel';
-import { CartModel } from './components/models/CartModel';
-import { BuyerModel } from './components/models/BuyerModel';
-import { apiProducts } from './utils/data';
-import { API_URL } from './utils/constants';
 
-function testModels() {
-    console.log('=== Тестирование моделей данных ===\n');
+import { cloneTemplate } from './utils/utils.ts';
 
-    console.log('1. Тестирование ProductModel:');
-    
-    const productModel = new ProductModel();
-    
-    productModel.saveProducts(apiProducts.items);
-    const allProducts = productModel.getProducts();
-    console.log('Все товары:', allProducts);
-    console.log('Количество товаров:', allProducts.length);
-    
-    if (allProducts.length > 0) {
-        const firstProductId = allProducts[0].id;
-        const foundProduct = productModel.getProductById(firstProductId);
-        console.log('Товар по ID', firstProductId, ':', foundProduct);
-        
-        const notFoundProduct = productModel.getProductById('non-existent-id');
-        console.log('Несуществующий ID:', notFoundProduct);
-    }
-    
-    if (allProducts.length > 1) {
-        const selectedProduct = allProducts[1];
-        productModel.saveSelectedProduct(selectedProduct);
-        const retrievedProduct = productModel.getSelectedProduct();
-        console.log('Выбранный товар:', retrievedProduct);
-        console.log('ID выбранного товара:', retrievedProduct?.id);
-    }
-    
-    console.log('\n2. Тестирование CartModel:');
-    
-    const cartModel = new CartModel();
+import { ProductCatalog } from './components/models/ProductModel.ts';
+import { Cart } from './components/models/CartModel.ts';
+import { Buyer } from './components/models/BuyerModel.ts';
+import { Api } from './components/base/Api.ts';
+import { API_URL, EventState, btnTextForModalCard } from './utils/constants.ts';
+import { Communication } from './components/api/ShopApi.ts';
 
-    if (allProducts.length >= 3) {
-        cartModel.addItem(allProducts[0]);
-        cartModel.addItem(allProducts[1]);
-        cartModel.addItem(allProducts[2]);
-        
-        const cartItems = cartModel.getItems();
-        console.log('Товары в корзине:', cartItems);
-        console.log('Количество товаров в корзине:', cartModel.getItemsCount());
-        
-        console.log('Общая стоимость корзины:', cartModel.getTotalAmount());
-        
-        const firstProductId = allProducts[0].id;
-        console.log('Содержит товар', firstProductId, ':', cartModel.containsItem(firstProductId));
-        
-        cartModel.removeItem(firstProductId);
-        console.log('После удаления товара', firstProductId, ':');
-        console.log('Количество товаров:', cartModel.getItemsCount());
-        console.log('Содержит удаленный товар:', cartModel.containsItem(firstProductId));
-        
-        cartModel.clear();
-        console.log('После очистки корзины:');
-        console.log('Количество товаров:', cartModel.getItemsCount());
-        console.log('Общая стоимость:', cartModel.getTotalAmount());
-    }
-    
-    console.log('\n3. Тестирование BuyerModel:');
-    
-    const buyerModel = new BuyerModel();
-    
-    buyerModel.saveData({
-        email: 'test@example.com',
-        phone: '+79991234567'
-    });
-    
-    console.log('Данные после частичного сохранения:', buyerModel.getData());
-    
-    buyerModel.saveData({
-        address: 'Москва, ул. Примерная, д. 1',
-        payment: 'online'
-    });
-    
-    console.log('Данные после полного сохранения:', buyerModel.getData());
-    
-    const validationResult = buyerModel.validate();
-    console.log('Результат валидации:', validationResult);
-    console.log('Валидны все поля?', Object.keys(validationResult).length === 0);
-    
-    buyerModel.clear();
-    console.log('Данные после очистки:', buyerModel.getData());
-    
-    console.log('\n=== Тестирование завершено ===');
-}
+import { EventEmitter } from './components/base/Events.ts';
+import { DOM_ELEMENTS } from './utils/dom-refs.ts';
+import { HeaderUI } from './components/view/HeaderUI.ts';
+import { MainGalleryUI } from './components/view/MainGalleryUI.ts';
+import { ModalUI } from './components/view/ModalUI.ts';
 
-console.log('API_URL:', API_URL);
+import { CardGalleryUI } from './components/view/CardGalleryUI.ts';
+import { IBuyer, IProduct, TProductList, TResponseFromSerever } from './types/index.ts';
+import { CardPreviewUI } from './components/view/CardPreviewUI.ts';
+import { CartUI } from './components/view/CartUI.ts';
+import { ProductInCartUI } from './components/view/ProductInCartUI.ts';
+import { FormOrderUI } from './components/view/FormOrderUI.ts';
+import { FormContactsUI } from './components/view/FormContactsUI.ts';
+import { SuccessfulUI } from './components/view/SuccessfulUI.ts';
 
+/* Экземпляры клсссов */
+const events = new EventEmitter();
 const api = new Api(API_URL);
-const shopApi = new ShopApi(api);
-const serverProductModel = new ProductModel();
+const communicationApi = new Communication(api);
+const productsCatalog = new ProductCatalog(events);
+const buyerModel = new Buyer(events);
+const cartModel = new Cart(events);
 
-shopApi.getProducts()
-    .then(products => {
-        console.log('\n=== Получение данных с сервера ===');
-        console.log('Получено товаров с сервера:', products.length);
-        
-        serverProductModel.saveProducts(products);
-        
-        const savedProducts = serverProductModel.getProducts();
-        console.log('Товаров сохранено в модель:', savedProducts.length);
-        console.log('Каталог из модели:', savedProducts);
-        
-        if (savedProducts.length > 0) {
-            console.log('\nПроверка работы классов:');
-            const testProduct = savedProducts[0];
-            console.log('Первый товар:', testProduct.title, '-', testProduct.price, 'руб.');
-            
-            const foundById = serverProductModel.getProductById(testProduct.id);
-            console.log('Найден по ID:', foundById ? 'да' : 'нет');
-        }
-        
-        console.log('=== Классы работают корректно ===');
-    })
-    .catch(error => {
-        console.error('\n=== Ошибка при получении данных с сервера ===');
-        console.error('Ошибка:', error);
-        console.log('Используем тестовые данные...');
-        
-        serverProductModel.saveProducts(apiProducts.items);
-        console.log('Использовано тестовых товаров:', serverProductModel.getProducts().length);
+const header = new HeaderUI(events, DOM_ELEMENTS.header);
+const main = new MainGalleryUI(DOM_ELEMENTS.page);
+const modal = new ModalUI(events, DOM_ELEMENTS.modal);
+const cart = new CartUI(events, cloneTemplate(DOM_ELEMENTS.cart));
+
+const cardPreview = new CardPreviewUI(cloneTemplate(DOM_ELEMENTS.cardPreviewTemplate), {
+  onClick: () => events.emit(EventState.BUY_CLICK, productsCatalog.getSelectedProduct())
+});
+
+const formOrder = new FormOrderUI(events, cloneTemplate(DOM_ELEMENTS.formOrder));
+const formContacts = new FormContactsUI(events, cloneTemplate(DOM_ELEMENTS.formContacts));
+const success = new SuccessfulUI(events, cloneTemplate(DOM_ELEMENTS.successful));
+
+
+/* Обработчики событий */
+events.on(EventState.CATALOG_CHANGED, () => {
+  const cardsArr = productsCatalog.getProductList().map((product) => {
+    const card = new CardGalleryUI(cloneTemplate(DOM_ELEMENTS.cardGalleryTemplate), {
+      onClick: () => events.emit(EventState.CARD_SELECTED, product)
     });
+    return card.render(product);
+  });
 
-testModels();
+  main.render({ catalog: cardsArr });
+});
+
+events.on(EventState.CARD_SELECTED, (product: IProduct) => {
+  productsCatalog.setSelectedProduct(product);
+});
+
+events.on(EventState.SELECTED_CARD_SAVE, () => {
+  const selectedProductCard = productsCatalog.getSelectedProduct();
+  const cardModalRenderObject = {
+    ...selectedProductCard,
+    textButton: selectedProductCard.price === null
+                ? btnTextForModalCard.disabled
+                : cartModel.checkProductInCartById(selectedProductCard.id)
+                ? btnTextForModalCard.delete
+                : btnTextForModalCard.buy,
+    statusButton: !Boolean(selectedProductCard.price),
+  };
+  const contentModalElement = cardPreview.render(cardModalRenderObject);
+
+  modal.render({ content: contentModalElement });
+  modal.open();
+});
+
+events.on(EventState.BUY_CLICK, (product: IProduct) => {
+  cartModel.checkProductInCartById(product.id) === false
+            ? cartModel.addToCart(product)
+            : cartModel.removeFromCart(product);
+  modal.close();
+});
+
+events.on(EventState.CART_CHANGED, () => {
+  const selectedProductCard = productsCatalog.getSelectedProduct();
+  const counter = cartModel.getTotalCartCount();
+  const updTextButton = {
+    ...selectedProductCard,
+    textButton: btnTextForModalCard.delete,
+  };
+
+  const productListInCart = cartModel.getListFromCart();
+  const productListInCartArr = productListInCart.map((product: IProduct, index) => {
+    const productInCart = new ProductInCartUI(cloneTemplate(DOM_ELEMENTS.productInCartTemplate), {
+      onClick: () => events.emit(EventState.PRODUCT_REMOVE, product)
+    });
+    const productCard = {
+      ...product,
+      index: index + 1,
+    };
+    return productInCart.render(productCard);
+  });
+
+  const cartRenderObject = {
+    listOfPosition: productListInCartArr,
+    summ: cartModel.getTotalCartCost(),
+    statusButton: !Boolean(cartModel.getTotalCartCost()),
+  };
+  const cartRender = cart.render(cartRenderObject);
+
+  modal.render({ content: cartRender });
+  cardPreview.render(updTextButton);
+  header.render( { counter } );
+});
+
+events.on(EventState.CART_OPEN, () => {
+  modal.render({ content: cart.render() });
+  modal.open();
+});
+
+events.on(EventState.PRODUCT_REMOVE, (product: IProduct) => {
+  cartModel.removeFromCart(product);
+});
+
+events.on(EventState.ORDER_START, () => {
+  modal.render({ content: formOrder.render() });
+});
+
+events.on(EventState.FORM_EDIT, (formInformation: Partial<IBuyer>) => {
+  buyerModel.setOrderInformation(formInformation);
+});
+
+events.on(EventState.BUYER_CAHAGED, (buyer) => {
+  const errors = buyerModel.validationOrderInformation();
+  const { payment, address } = errors;
+  const errorsFromOrderForm = { payment, address };
+  const statusButton = !Object.values(errorsFromOrderForm).every((elem) => elem === null);
+  const formRenderObject = {
+    ...buyer,
+    errors: errorsFromOrderForm,
+    statusButton
+  };
+
+  formOrder.render(formRenderObject);
+});
+
+events.on(EventState.ORDER_SUBMIT, () => {
+  const errors = buyerModel.validationOrderInformation();
+  if (!Object.values(errors).every((elem) => elem === null)) {
+    modal.render({ content: formContacts.render() });
+  } else {
+    const items = cartModel.getListFromCart().map((product: IProduct) => product.id);
+    const orderInfoOnServerObj = {
+      ...buyerModel.getOrderInformation(),
+      total: cartModel.getTotalCartCost(),
+      items
+    };
+    (async () => {
+      try {
+        const responseFromServer: TResponseFromSerever = await communicationApi.postOrderOnServer(orderInfoOnServerObj);
+          cartModel.clearCart();
+          buyerModel.clearOrderInformation();
+          modal.render({ content: success.render({summ: responseFromServer.total}) });
+      } catch (error) {
+        console.error(error);
+      }
+    })();
+  };
+});
+
+events.on(EventState.CONTACT_CHANGED, (info) => {
+  const errors = buyerModel.validationOrderInformation();
+  const { email, phone } = errors;
+  const errorsFromContactsForm = { email, phone };
+  const statusButton = !Object.values(errorsFromContactsForm).every((elem) => elem === null);
+  const formRenderObject = {
+    ...info,
+    errors: errorsFromContactsForm,
+    statusButton
+  };
+
+  formContacts.render(formRenderObject);
+});
+
+events.on(EventState.MODAL_CLOSE, () => {;
+  modal.close();
+});
+
+/* Запрос данных с сервера */
+try {
+  const catalogOfProductsFromServer: TProductList = await communicationApi.getProductsFromServer();
+  productsCatalog.setProductList(catalogOfProductsFromServer.items);
+} catch (error) {
+  console.error(error);
+};

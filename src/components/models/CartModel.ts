@@ -1,39 +1,40 @@
-import { IProduct } from '../../types';
+import { IProduct } from '../../types/index.ts';
+import { EventState } from '../../utils/constants.ts';
+import { IEvents } from '../base/Events.ts';
 
-export class CartModel {
-    private _items: IProduct[] = [];
+export class Cart {
+	protected _purchaseProductList: IProduct[] = [];
 
-    constructor(initialItems: IProduct[] = []) {
-        this._items = initialItems;
-    }
+	constructor(protected event: IEvents) {};
 
-    getItems(): IProduct[] {
-        return this._items;
-    }
+	getListFromCart(): IProduct[] {
+		return this._purchaseProductList;
+	};
 
-    addItem(item: IProduct): void {
-        this._items.push(item);
-    }
+	addToCart(product: IProduct): void {
+		this._purchaseProductList.push(product);
+		this.event.emit(EventState.CART_CHANGED);
+	};
 
-    removeItem(itemId: string): void {
-        this._items = this._items.filter(item => item.id !== itemId);
-    }
+	removeFromCart(product: IProduct): void {
+		this._purchaseProductList = this._purchaseProductList.filter((item: IProduct) => item.id !== product.id);
+		this.event.emit(EventState.CART_CHANGED);
+	};
 
-    clear(): void {
-        this._items = [];
-    }
+	clearCart(): void {
+		this._purchaseProductList.length = 0;
+		this.event.emit(EventState.CART_CHANGED);
+	};
 
-    getTotalAmount(): number {
-        return this._items.reduce((total, item) => {
-            return total + (item.price || 0);
-        }, 0);
-    }
+	getTotalCartCost(): number {
+		return this._purchaseProductList.reduce((acc: number, item: IProduct) => acc + (item.price ?? 0), 0);
+	};
 
-    getItemsCount(): number {
-        return this._items.length;
-    }
+	getTotalCartCount(): number {
+		return this._purchaseProductList.length;
+	};
 
-    containsItem(itemId: string): boolean {
-        return this._items.some(item => item.id === itemId);
-    }
-}
+	checkProductInCartById(id: string): boolean {
+		return this._purchaseProductList.some((item: IProduct) => item.id === id);
+	};
+};

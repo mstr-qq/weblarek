@@ -1,30 +1,32 @@
-import { IProduct } from '../../types';
+import { IProduct } from '../../types/index.ts';
+import { IEvents } from "../base/Events.ts";
+import { EventState } from "../../utils/constants.ts";
 
-export class ProductModel {
-    private _products: IProduct[] = [];
-    private _selectedProduct: IProduct | null = null;
+export class ProductCatalog {
+	protected _productList: IProduct[] = [];
+	protected _selectedProduct!: IProduct;
 
-    constructor(initialProducts: IProduct[] = []) {
-        this._products = initialProducts;
-    }
+	constructor(protected event: IEvents) {};
 
-    saveProducts(products: IProduct[]): void {
-        this._products = products;
-    }
+	setProductList(productListArr: IProduct[]): void {
+		this._productList = productListArr;
+		this.event.emit(EventState.CATALOG_CHANGED);
+	};
 
-    getProducts(): IProduct[] {
-        return this._products;
-    }
+	getProductList(): IProduct[] {
+		return this._productList;
+	};
 
-    getProductById(id: string): IProduct | null {
-        return this._products.find(product => product.id === id) || null;
-    }
+	getProductById(id: string): IProduct | null {
+		return this._productList.find((item: IProduct) => item.id === id) ?? null;
+	};
 
-    saveSelectedProduct(product: IProduct): void {
-        this._selectedProduct = product;
-    }
+	setSelectedProduct(product: IProduct): void {
+		this._selectedProduct = product;
+		this.event.emit(EventState.SELECTED_CARD_SAVE);
+	};
 
-    getSelectedProduct(): IProduct | null {
-        return this._selectedProduct;
-    }
-}
+	getSelectedProduct(): IProduct {
+		return this._selectedProduct;
+	};
+};

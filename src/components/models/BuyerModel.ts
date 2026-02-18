@@ -1,53 +1,64 @@
-import { IBuyer, IBuyerValidationErrors } from '../../types';
+import { IBuyer, TPayment, TErrors } from '../../types/index.ts';
+import { EventState } from '../../utils/constants.ts';
+import { IEvents } from '../base/Events.ts';
 
-export class BuyerModel {
-    private _data: IBuyer = {
-        payment: 'online',
-        email: '',
-        phone: '',
-        address: ''
+export class Buyer {
+    protected _payment: TPayment = '';
+    protected _email: string = '';
+    protected _phone: string = '';
+    protected _address: string = '';
+
+    constructor(protected event: IEvents) {};
+
+    setOrderInformation(orderInfo: Partial<IBuyer>): void {
+        if (orderInfo.payment !== undefined) {
+            this._payment = orderInfo.payment;
+            this.event.emit(EventState.BUYER_CAHAGED, this.getOrderInformation());
+        };
+        if (orderInfo.address !== undefined) {
+            this._address = orderInfo.address;
+            this.event.emit(EventState.BUYER_CAHAGED, this.getOrderInformation());
+        };
+        if (orderInfo.email !== undefined) {
+            this._email = orderInfo.email;
+            this.event.emit(EventState.CONTACT_CHANGED, this.getOrderInformation());
+        };
+        if (orderInfo.phone !== undefined) {
+            this._phone = orderInfo.phone;
+            this.event.emit(EventState.CONTACT_CHANGED, this.getOrderInformation());
+        };
     };
 
-    constructor(initialData: Partial<IBuyer> = {}) {
-        this._data = { ...this._data, ...initialData };
-    }
-
-    saveData(data: Partial<IBuyer>): void {
-        this._data = { ...this._data, ...data };
-    }
-
-    getData(): IBuyer {
-        return this._data;
-    }
-
-    clear(): void {
-        this._data = {
-            payment: 'online',
-            email: '',
-            phone: '',
-            address: ''
+    getOrderInformation(): IBuyer {
+        return {
+            payment: this._payment,
+            email: this._email,
+            phone: this._phone,
+            address: this._address
         };
-    }
+    };
 
-    validate(): IBuyerValidationErrors {
-        const errors: IBuyerValidationErrors = {};
-        
-        if (!this._data.payment) {
-            errors.payment = 'Не выбран вид оплаты';
-        }
-        
-        if (!this._data.email) {
-            errors.email = 'Укажите емэйл';
-        }
-        
-        if (!this._data.phone) {
-            errors.phone = 'Укажите телефон';
-        }
-        
-        if (!this._data.address) {
-            errors.address = 'Укажите адрес';
-        }
-        
+    clearOrderInformation(): void {
+        this._payment = '';
+        this._email = '';
+        this._phone = '';
+        this._address = '';
+        this.event.emit(EventState.BUYER_CAHAGED, this.getOrderInformation());
+        this.event.emit(EventState.CONTACT_CHANGED, this.getOrderInformation());
+    };
+
+
+    validationOrderInformation(): TErrors {
+        const errors: TErrors = {
+            payment: null,
+            email: null,
+            phone: null,
+            address: null
+        };
+        if (!this._payment) {errors.payment = 'Не выбран способ оплаты'};
+        if (!this._address) {errors.address = 'Не указан адрес доставки'};
+        if (!this._email) {errors.email = 'Не указан корректный email'};
+        if (!this._phone) {errors.phone = 'Не указан номер телефона'};
         return errors;
-    }
-}
+    };
+};
