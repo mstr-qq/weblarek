@@ -21,6 +21,8 @@ export class CartUI extends Component<ICartData> {
     this._cartPlaceOrderButton = ensureElement<HTMLButtonElement>('.basket__button', this.container);
     this._orderSumm = ensureElement<HTMLSpanElement>('.basket__price', this.container);
 
+    this._cartPlaceOrderButton.disabled = true;
+
     this._cartPlaceOrderButton.addEventListener('click', () => {
       this.event.emit(EventState.ORDER_START);
     });

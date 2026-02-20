@@ -24,7 +24,7 @@ import { FormOrderUI } from './components/view/FormOrderUI.ts';
 import { FormContactsUI } from './components/view/FormContactsUI.ts';
 import { SuccessfulUI } from './components/view/SuccessfulUI.ts';
 
-/* Экземпляры клсссов */
+/* Экземпляры классов */
 const events = new EventEmitter();
 const api = new Api(API_URL);
 const communicationApi = new Communication(api);
@@ -87,13 +87,8 @@ events.on(EventState.BUY_CLICK, (product: IProduct) => {
 });
 
 events.on(EventState.CART_CHANGED, () => {
-  const selectedProductCard = productsCatalog.getSelectedProduct();
   const counter = cartModel.getTotalCartCount();
-  const updTextButton = {
-    ...selectedProductCard,
-    textButton: btnTextForModalCard.delete,
-  };
-
+  
   const productListInCart = cartModel.getListFromCart();
   const productListInCartArr = productListInCart.map((product: IProduct, index) => {
     const productInCart = new ProductInCartUI(cloneTemplate(DOM_ELEMENTS.productInCartTemplate), {
@@ -114,8 +109,7 @@ events.on(EventState.CART_CHANGED, () => {
   const cartRender = cart.render(cartRenderObject);
 
   modal.render({ content: cartRender });
-  cardPreview.render(updTextButton);
-  header.render( { counter } );
+  header.render({ counter });
 });
 
 events.on(EventState.CART_OPEN, () => {
@@ -149,28 +143,22 @@ events.on(EventState.BUYER_CAHAGED, (buyer) => {
   formOrder.render(formRenderObject);
 });
 
-events.on(EventState.ORDER_SUBMIT, () => {
-  const errors = buyerModel.validationOrderInformation();
-  if (!Object.values(errors).every((elem) => elem === null)) {
-    modal.render({ content: formContacts.render() });
-  } else {
-    const items = cartModel.getListFromCart().map((product: IProduct) => product.id);
-    const orderInfoOnServerObj = {
-      ...buyerModel.getOrderInformation(),
-      total: cartModel.getTotalCartCost(),
-      items
-    };
-    (async () => {
-      try {
-        const responseFromServer: TResponseFromSerever = await communicationApi.postOrderOnServer(orderInfoOnServerObj);
-          cartModel.clearCart();
-          buyerModel.clearOrderInformation();
-          modal.render({ content: success.render({summ: responseFromServer.total}) });
-      } catch (error) {
-        console.error(error);
-      }
-    })();
+events.on(EventState.ORDER_SUBMIT, async () => {
+  const items = cartModel.getListFromCart().map((product: IProduct) => product.id);
+  const orderInfoOnServerObj = {
+    ...buyerModel.getOrderInformation(),
+    total: cartModel.getTotalCartCost(),
+    items
   };
+  
+  try {
+    const responseFromServer: TResponseFromSerever = await communicationApi.postOrderOnServer(orderInfoOnServerObj);
+    cartModel.clearCart();
+    buyerModel.clearOrderInformation();
+    modal.render({ content: success.render({summ: responseFromServer.total}) });
+  } catch (error) {
+    console.error(error);
+  }
 });
 
 events.on(EventState.CONTACT_CHANGED, (info) => {
@@ -187,7 +175,7 @@ events.on(EventState.CONTACT_CHANGED, (info) => {
   formContacts.render(formRenderObject);
 });
 
-events.on(EventState.MODAL_CLOSE, () => {;
+events.on(EventState.MODAL_CLOSE, () => {
   modal.close();
 });
 
